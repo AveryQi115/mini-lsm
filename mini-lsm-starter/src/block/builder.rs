@@ -51,6 +51,10 @@ impl BlockBuilder {
         self.kvs.is_empty()
     }
 
+    pub fn size(&self) -> usize {
+        self.current_size
+    }
+
     /// Finalize the block.
     pub fn build(self) -> Block {
         let mut offsets = vec![0u16; self.kvs.len()];

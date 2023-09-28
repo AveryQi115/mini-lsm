@@ -18,7 +18,9 @@ use crate::lsm_storage::BlockCache;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BlockMeta {
     /// Offset of this data block.
-    pub offset: usize,
+    /// It marks the end of the data block, as each data block is aligned to 4KB.
+    pub offset: u32,
+    key_len: u16,
     /// The first key of the data block, mainly used for index purpose.
     pub first_key: Bytes,
 }
@@ -32,12 +34,28 @@ impl BlockMeta {
         #[allow(clippy::ptr_arg)] // remove this allow after you finish
         buf: &mut Vec<u8>,
     ) {
-        unimplemented!()
+        for meta in block_meta {
+            buf.extend_from_slice(&meta.offset.to_be_bytes());
+            buf.extend_from_slice(&meta.key_len.to_be_bytes());
+            buf.extend_from_slice(&meta.first_key);
+        }
     }
 
     /// Decode block meta from a buffer.
     pub fn decode_block_meta(buf: impl Buf) -> Vec<BlockMeta> {
-        unimplemented!()
+        let mut block_metas = Vec::new();
+        let mut buf = buf;
+        while buf.has_remaining() {
+            let offset = buf.get_u32();
+            let key_len = buf.get_u16();
+            let first_key = buf.copy_to_bytes(key_len as usize);
+            block_metas.push(BlockMeta {
+                offset,
+                key_len,
+                first_key,
+            });
+        }
+        block_metas
     }
 }
 
@@ -55,11 +73,15 @@ impl FileObject {
 
     /// Create a new file object (day 2) and write the file to the disk (day 4).
     pub fn create(path: &Path, data: Vec<u8>) -> Result<Self> {
-        unimplemented!()
+        Ok(Self {
+            0: Bytes::from(data),
+        })
     }
 
     pub fn open(path: &Path) -> Result<Self> {
-        unimplemented!()
+        Ok(Self {
+            0: Bytes::from(std::fs::read(path)?),
+        })
     }
 }
 
@@ -74,7 +96,7 @@ pub struct SsTable {
     /// The meta blocks that hold info for data blocks.
     block_metas: Vec<BlockMeta>,
     /// The offset that indicates the start point of meta blocks in `file`.
-    block_meta_offset: usize,
+    block_meta_offset: u32,
 }
 
 impl SsTable {
@@ -85,7 +107,18 @@ impl SsTable {
 
     /// Open SSTable from a file.
     pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
-        unimplemented!()
+        let block_meta_offset = file.read(file.size() - 4, 4)?;
+        let block_meta_offset = u32::from_be_bytes(block_meta_offset[0..4].try_into().unwrap());
+        let buf = file.read(
+            block_meta_offset as u64,
+            file.size() as u64 - 4 - block_meta_offset as u64,
+        )?;
+        let metas = BlockMeta::decode_block_meta(Bytes::from(buf));
+        Ok(Self {
+            file,
+            block_metas: metas,
+            block_meta_offset,
+        })
     }
 
     /// Read a block from the disk.
