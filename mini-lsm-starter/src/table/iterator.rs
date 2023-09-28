@@ -47,7 +47,7 @@ impl SsTableIterator {
                 low = mid + 1;
             }
         }
-        if low <= 0 {
+        if low == 0 {
             return Self::create_and_seek_to_first(table);
         }
         let mut block = table.read_block(low - 1)?;
@@ -85,7 +85,7 @@ impl SsTableIterator {
                 low = mid + 1;
             }
         }
-        if low <= 0 {
+        if low == 0 {
             self.seek_to_first()?;
             return Ok(());
         }

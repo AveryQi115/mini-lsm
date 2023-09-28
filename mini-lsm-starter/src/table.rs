@@ -73,9 +73,7 @@ impl FileObject {
 
     /// Create a new file object (day 2) and write the file to the disk (day 4).
     pub fn create(path: &Path, data: Vec<u8>) -> Result<Self> {
-        Ok(Self {
-            0: Bytes::from(data),
-        })
+        Ok(Self(Bytes::from(data)))
     }
 
     pub fn open(path: &Path) -> Result<Self> {
@@ -111,7 +109,7 @@ impl SsTable {
         let block_meta_offset = u32::from_be_bytes(block_meta_offset[0..4].try_into().unwrap());
         let buf = file.read(
             block_meta_offset as u64,
-            file.size() as u64 - 4 - block_meta_offset as u64,
+            file.size() - 4 - block_meta_offset as u64,
         )?;
         let metas = BlockMeta::decode_block_meta(Bytes::from(buf));
         Ok(Self {
