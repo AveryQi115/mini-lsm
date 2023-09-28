@@ -52,7 +52,7 @@ impl BlockBuilder {
     }
 
     pub fn size(&self) -> usize {
-        self.current_size
+        self.current_size + 2 // for num of offsets
     }
 
     /// Finalize the block.

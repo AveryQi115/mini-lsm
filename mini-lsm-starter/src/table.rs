@@ -123,7 +123,13 @@ impl SsTable {
 
     /// Read a block from the disk.
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
-        unimplemented!()
+        let block_offset = self.block_metas[block_idx].offset;
+        let start = block_offset / 4196 * 4196;
+        let block_data = self
+            .file
+            .read(start as u64, (block_offset - start) as u64)?;
+        let block = Block::decode(&block_data);
+        Ok(Arc::new(block))
     }
 
     /// Read a block from disk, with block cache. (Day 4)
